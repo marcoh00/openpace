@@ -97,6 +97,7 @@ id-description 1 :  id-plainFormat
 id-description 2 :  id-htmlFormat
 id-description 3 :  id-pdfFormat
 id-extensions 2 :   id-sector
+id-extensions 3 :   id-PS-Sector
 
 !Alias id-eID bsi-de 3 2
 id-eID 1 :  id-SecurityObject

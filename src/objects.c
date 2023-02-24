@@ -164,6 +164,7 @@ int NID_id_plainFormat = NID_undef;
 int NID_id_htmlFormat = NID_undef;
 int NID_id_pdfFormat = NID_undef;
 int NID_id_sector = NID_undef;
+int NID_id_ps_sector = NID_undef;
 int NID_id_SecurityObject = NID_undef;
 int NID_id_DateOfBirth = NID_undef;
 int NID_id_DateOfExpiry = NID_undef;
@@ -571,6 +572,11 @@ EAC_add_all_objects(void)
     if (obj != NID_undef)
         NID_id_sector = obj;
 
+#define ASC_id_ps_sector		ASC_id_extensions".3"
+    obj = OBJ_create(ASC_id_ps_sector	, SN_id_ps_sector	, SN_id_ps_sector	);
+    if (obj != NID_undef)
+        NID_id_ps_sector = obj;
+
 #define ASC_id_eID		ASC_bsi_de".3.2"
 
 #define ASC_id_SecurityObject		ASC_id_eID".1"
@@ -670,6 +676,7 @@ EAC_add_all_objects(void)
             || NID_undef == NID_id_htmlFormat
             || NID_undef == NID_id_pdfFormat
             || NID_undef == NID_id_sector
+            || NID_undef == NID_id_ps_sector
             || NID_undef == NID_id_SecurityObject
             || NID_undef == NID_id_DateOfBirth
             || NID_undef == NID_id_DateOfExpiry

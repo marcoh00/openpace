@@ -394,6 +394,10 @@ extern int NID_id_pdfFormat;
 extern int NID_id_sector;
 #define OBJ_id_sector		OBJ_id_extensions,2L
 
+#define SN_id_ps_sector		"id-PS-sector"
+extern int NID_id_ps_sector;
+#define OBJ_id_ps_sector		OBJ_id_extensions,3L
+
 #define OBJ_id_eID		OBJ_bsi_de,3L,2L
 
 #define SN_id_SecurityObject		"id-SecurityObject"

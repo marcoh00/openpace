@@ -226,6 +226,12 @@ option "verify-community"   -
 option "verify-age"   -
     "Allow age verification"
     flag off
+option "ps-sector-key"        -
+    "Sector Private Key for the Pseudonymous Signature Terminal Sector"
+    default="Sector.pkcs8"
+    string
+    typestr="FILENAME"
+    optional
 
 section "Options for a Signature Terminal (ST)"
 option "st-rfu5"      -

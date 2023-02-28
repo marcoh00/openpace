@@ -646,7 +646,8 @@ int main(int argc, char *argv[])
     CVC_CERTIFICATE_DESCRIPTION *desc = NULL;
     CVC_CERT_REQUEST *request = NULL;
     CVC_CERT_AUTHENTICATION_REQUEST *authentication = NULL;
-    CVC_DISCRETIONARY_DATA_TEMPLATE *template = NULL;
+    CVC_DISCRETIONARY_DATA_TEMPLATE *template_desc = NULL, *template_ps = NULL;
+    CVC_PUBKEY *cvc_pubkey_sector = NULL;
     int fail = 1, body_len = 0, desc_buf_len = 0, term_key_len = 0;
     struct gengetopt_args_info cmdline;
     const unsigned char *car = NULL;
@@ -657,8 +658,8 @@ int main(int argc, char *argv[])
     char string[80];
     const char *out = NULL;
     char basename[70];
-    BUF_MEM *body_buf = NULL, *signature = NULL, *desc_hash = NULL;
-    EVP_PKEY *signer_key = NULL, *term_key = NULL;
+    BUF_MEM *body_buf = NULL, *signature = NULL, *desc_hash = NULL, *ps_hash = 0;
+    EVP_PKEY *signer_key = NULL, *term_key = NULL, *sector_key = NULL;
     EVP_PKEY_CTX *term_key_ctx = NULL;
 
     EAC_init();
@@ -914,15 +915,15 @@ int main(int argc, char *argv[])
         desc_hash = CVC_hash_description(cert, desc_buf, desc_buf_len);
         if (!cert->body->certificate_extensions)
             cert->body->certificate_extensions = (void *) sk_new_null();
-        template = CVC_DISCRETIONARY_DATA_TEMPLATE_new();
-        if (!desc_hash || !cert->body->certificate_extensions || !template)
+        template_desc = CVC_DISCRETIONARY_DATA_TEMPLATE_new();
+        if (!desc_hash || !cert->body->certificate_extensions || !template_desc)
             goto err;
-        template->type = EAC_OBJ_nid2obj(NID_id_description);
-        template->discretionary_data1 = ASN1_OCTET_STRING_new();
-        if (!template->type || !template->discretionary_data1
-                || !ASN1_OCTET_STRING_set(template->discretionary_data1,
+        template_desc->type = EAC_OBJ_nid2obj(NID_id_description);
+        template_desc->discretionary_data1 = ASN1_OCTET_STRING_new();
+        if (!template_desc->type || !template_desc->discretionary_data1
+                || !ASN1_OCTET_STRING_set(template_desc->discretionary_data1,
                     (unsigned char *) desc_hash->data, desc_hash->length)
-                || !sk_push((_STACK *) cert->body->certificate_extensions, template))
+                || !sk_push((_STACK *) cert->body->certificate_extensions, template_desc))
             goto err;
         if (!cmdline.out_desc_given) {
             strcpy(string, basename);
@@ -936,6 +937,28 @@ int main(int argc, char *argv[])
         printf("Created %s\n", out);
     }
 
+    /* write terminal sector extension for pseudonymous signatures */
+    if(cmdline.ps_sector_key_given) {
+        sector_key = read_evp_pkey(cmdline.ps_sector_key_arg);
+        if (!sector_key)
+            goto err;
+        cvc_pubkey_sector = get_cvc_pubkey(&cmdline, sector_key);
+        if (!cvc_pubkey_sector)
+            goto err;
+        ps_hash = CVC_hash_description(cert, cvc_pubkey_sector->cont6->data, cvc_pubkey_sector->cont6->length);
+        if (!cert->body->certificate_extensions)
+            cert->body->certificate_extensions = (void *) sk_new_null();
+        template_ps = CVC_DISCRETIONARY_DATA_TEMPLATE_new();
+        if (!ps_hash || !cert->body->certificate_extensions || !template_ps)
+            goto err;
+        template_ps->type = EAC_OBJ_nid2obj(NID_id_ps_sector);
+        template_ps->discretionary_data1 = ASN1_OCTET_STRING_new();
+        if (!template_ps->type || !template_ps->discretionary_data1
+                || !ASN1_OCTET_STRING_set(template_ps->discretionary_data1,
+                    (unsigned char *) ps_hash->data, ps_hash->length)
+                || !sk_push((_STACK *) cert->body->certificate_extensions, template_ps))
+            goto err;
+    }
 
     /* sign body */
     body_len = i2d_CVC_CERT_BODY(cert->body, &body_p);
@@ -1001,6 +1024,10 @@ err:
         EVP_PKEY_free(term_key);
     if (term_key_ctx)
         EVP_PKEY_CTX_free(term_key_ctx);
+    if (sector_key)
+        EVP_PKEY_free(sector_key);
+    if (cvc_pubkey_sector)
+        CVC_PUBKEY_free(cvc_pubkey_sector);
     if (desc)
         CVC_CERTIFICATE_DESCRIPTION_free(desc);
     if (authentication) {
@@ -1012,6 +1039,8 @@ err:
     OPENSSL_free(desc_buf);
     if (desc_hash)
         BUF_MEM_free(desc_hash);
+    if (ps_hash)
+        BUF_MEM_free(ps_hash);
 
     EAC_cleanup();
 
